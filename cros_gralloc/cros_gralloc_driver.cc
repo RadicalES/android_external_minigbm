@@ -109,6 +109,9 @@ static struct driver *init_try_node(int idx, char const *str)
 	if (fd < 0)
 		return NULL;
 
+	/* No-op on render nodes; on a card node it lets the composer be master */
+	drmDropMaster(fd);
+
 	drv = drv_create(fd);
 	if (!drv)
 		close(fd);
