@@ -76,7 +76,33 @@ INIT_DUMB_DRIVER(udl)
 INIT_DUMB_DRIVER(vkms)
 
 #ifndef DRV_ROCKCHIP
-INIT_DUMB_DRIVER(rockchip)
+/*
+ * Rockchip (mainline rockchip-drm, dumb buffers): the VOP2 display controller
+ * scans out NV12, so camera and video buffers may also be display overlays.
+ * Without SCANOUT on NV12, a flexible-YUV camera stream shown through a
+ * SurfaceView (camera write + composer overlay) cannot be allocated at all.
+ */
+static int rockchip_dumb_driver_init(struct driver *drv)
+{
+	int ret = dumb_driver_init(drv);
+	if (ret)
+		return ret;
+
+	drv_modify_combination(drv, DRM_FORMAT_NV12, &LINEAR_METADATA, BO_USE_SCANOUT);
+	return 0;
+}
+
+const struct backend backend_rockchip = {
+	.name = "rockchip",
+	.init = rockchip_dumb_driver_init,
+	.bo_create = drv_dumb_bo_create,
+	.bo_create_with_modifiers = dumb_bo_create_with_modifiers,
+	.bo_destroy = drv_dumb_bo_destroy,
+	.bo_import = drv_prime_bo_import,
+	.bo_map = drv_dumb_bo_map,
+	.bo_unmap = drv_bo_munmap,
+	.resolve_format_and_use_flags = drv_resolve_format_and_use_flags_helper,
+};
 #endif
 #ifndef DRV_MEDIATEK
 INIT_DUMB_DRIVER(mediatek)
